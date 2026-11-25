@@ -102,3 +102,7 @@ e2e 10 s → well inside the 20-minute budget.
 * **Fault-injection is opt-in.** `tests/smoke/test_injected_failure.py` skips unless
   `INJECT_FAILURE=1`, so the shipping gate is green while AC2 stays reproducible.
 * **Postgres is tmpfs-backed** in the CI stack: faster and guaranteed disposable.
+
+## 演示分支
+
+本分支仅用于在 PR 上跑一次 e2e-gate（验收标准 1 的截图），合并与否不影响交付。
