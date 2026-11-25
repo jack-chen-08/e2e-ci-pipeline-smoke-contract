@@ -52,7 +52,7 @@ jobs:
       - name: Smoke + contract suite
         env:
           E2E_BASE_URL: http://127.0.0.1:18000
-          INJECT_FAILURE: ${{ inputs.inject_failure && '1' || '0' }}
+          INJECT_FAILURE: '1'  # demo branch: one deliberately failing case (AC2)
         run: |
           mkdir -p reports
           pytest tests/smoke tests/contract -m "smoke or contract" \
