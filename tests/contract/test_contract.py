@@ -87,8 +87,11 @@ def test_contract_error_shape_is_detail(spec, api):
 
 @pytest.mark.contract
 def test_contract_health_schema(spec, api):
-    schema = spec["paths"]["/health"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
-    assert "properties" in schema, "health response schema should be inline"
+    schema = _schema_of(
+        spec,
+        spec["paths"]["/health"]["get"]["responses"]["200"]["content"]["application/json"]["schema"],
+    )
+    assert "properties" in schema, "health response schema should expose properties"
     body = api.get("/health").json()
     assert set(schema.get("required", [])) <= set(body)
     assert set(body) <= set(schema["properties"])

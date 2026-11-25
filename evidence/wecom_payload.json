@@ -1,0 +1,6 @@
+{
+  "msgtype": "markdown",
+  "markdown": {
+    "content": "**夜间回归失败**\n> 时间：2026-11-25 09:19 UTC\n> 失败用例：1 / 8\n> 报告：https://github.com/<org>/<repo>/actions/runs/local-drill\n前 1 条失败 case_id：\n> 1. test_zz_injected_failure_case"
+  }
+}
