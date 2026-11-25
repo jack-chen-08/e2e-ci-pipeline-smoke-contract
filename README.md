@@ -89,6 +89,15 @@ Timing rule of thumb on a warm runner: checkout 5 s, image build 40–70 s (laye
 stack up 20–30 s, Alembic + seed 5 s, smoke + contract 8 s, Playwright install 25 s,
 e2e 10 s → well inside the 20-minute budget.
 
+Real measurements from this repository (Actions, ubuntu-latest):
+
+| Run | Event | Result | Wall clock |
+| --- | --- | --- | --- |
+| [45585573464](https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/45585573464) | `pull_request` (PR #1) | success | 71 s |
+| [45586384626](https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/45586384626) | `pull_request` (PR #2, one injected failure) | failure | 63 s |
+| [45587466429](https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/45587466429) | `workflow_dispatch` (nightly workflow) | success | 86 s |
+| [45587497186](https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/45587497186) | `workflow_dispatch` (nightly workflow) | success | 154 s |
+
 ## 6. Design notes
 
 * **Isolated compose project.** Every job uses `-p e2e-<run_id>` and `down -v
