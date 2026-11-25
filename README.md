@@ -80,10 +80,10 @@ no test change needed.
 
 | AC | How it is proven | Evidence |
 | --- | --- | --- |
-| 1. `e2e-gate` green on a PR, ≤ 20 min | workflow `timeout-minutes: 20`; real PR run | `evidence/local_drill.log` step 5–6 (green + wall clock), PR run link in the delivery note |
-| 2. One failing case → gate fails → PR cannot merge | `INJECT_FAILURE=1` runs one deliberately failing case; job exits non-zero; check is required | `evidence/local_drill.log` step 7: `injected run exit code = 1` |
-| 3. Nightly failure posts a summary with case ids | `scripts/notify_failure.py` parses JUnit, takes fail count, first 10 `case_id`, report link, posts WeCom markdown | `evidence/local_drill.log` step 8: stub received payload shown verbatim; `evidence/wecom_payload.json` |
-| 4. No secrets in the repo, no leftover containers | `secrets.WECOM_WEBHOOK` only; teardown with `if: always()`; drill checks `docker ps` after teardown | `evidence/local_drill.log` step 9: `leftover containers: none`; `evidence/secret_scan.txt` |
+| 1. `e2e-gate` green on a PR, ≤ 20 min | PR #1 ([run 45585573464](https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/45585573464)): **success in 71 s**, all 13 steps green, PR merged after the check went green | `evidence/ac1_pr1_green.png`, `evidence/local_drill.log` |
+| 2. One failing case → gate fails → PR cannot merge | PR #2 runs the same gate with one injected failing case: **run 45586384626 red in 63 s**, job exit non-zero; with `e2e-gate` marked required (README §2) the merge button stays disabled | `evidence/ac2_pr2_red.png`, `evidence/ac2_run_red_steps.png` |
+| 3. Nightly failure posts a summary with case ids | `scripts/notify_failure.py` parses JUnit, takes fail count, first 10 `case_id`, report link, posts WeCom markdown; `e2e-nightly` job wires it to `secrets.WECOM_WEBHOOK` | `evidence/local_drill.log` step 8 (stub payload verbatim), `evidence/wecom_payload.json` |
+| 4. No secrets in the repo, no leftover containers | `secrets.WECOM_WEBHOOK` only; teardown with `if: always()`; drill checks `docker ps` after teardown; 5 credential patterns scanned = 0 hits | `evidence/secret_scan.txt`, `evidence/local_drill.log` step 9 (`leftover containers: none`) |
 
 Timing rule of thumb on a warm runner: checkout 5 s, image build 40–70 s (layer cache),
 stack up 20–30 s, Alembic + seed 5 s, smoke + contract 8 s, Playwright install 25 s,
