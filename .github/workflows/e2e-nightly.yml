@@ -1,0 +1,82 @@
+name: e2e-nightly
+
+# Full regression every night at 02:00 Asia/Shanghai (18:00 UTC the previous day).
+# On failure the job posts a summary (fail count, first 10 case ids, report link) to the
+# WeCom group bot; the webhook address comes from the repository secret WECOM_WEBHOOK and
+# is never written into the repo.
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-nightly
+  cancel-in-progress: false
+
+env:
+  COMPOSE_FILE: docker-compose.test.yml
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  e2e-full:
+    name: e2e-nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" build
+
+      - name: Start stack
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" up -d --wait --wait-timeout 300
+
+      - name: Alembic upgrade head
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" exec -T backend alembic upgrade head
+
+      - name: Seed baseline scenario
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" exec -T backend python seed.py --scenario baseline
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Full suite (smoke + contract + e2e)
+        id: tests
+        env:
+          E2E_BASE_URL: http://127.0.0.1:18000
+        run: |
+          mkdir -p reports
+          pytest tests -m "smoke or contract or e2e" \
+            --junitxml=reports/junit.xml \
+            --tracing retain-on-failure \
+            --output reports/playwright
+
+      - name: Upload reports
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-nightly-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: WeCom failure summary
+        if: failure() && steps.tests.outcome == 'failure'
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          REPORT_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python scripts/notify_failure.py --junit reports/junit.xml --report-url "$REPORT_URL" --endpoint "$WECOM_WEBHOOK"
+
+      - name: Tear down stack (always)
+        if: always()
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" down -v --remove-orphans

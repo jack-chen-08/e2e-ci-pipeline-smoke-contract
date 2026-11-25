@@ -1,0 +1,84 @@
+name: e2e-gate
+
+# PR gate: build → compose stack → alembic → seed → smoke + contract → Playwright.
+# Merge-blocking check name: "e2e-gate" (see README §2 for the branch-protection setup).
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSE_FILE: docker-compose.test.yml
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  e2e-gate:
+    name: e2e-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" build
+
+      - name: Start stack (backend + PG16/pgvector + Redis + external stub)
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" up -d --wait --wait-timeout 300
+
+      - name: Alembic upgrade head
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" exec -T backend alembic upgrade head
+
+      - name: Seed baseline scenario
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" exec -T backend python seed.py --scenario baseline
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Smoke + contract suite
+        env:
+          E2E_BASE_URL: http://127.0.0.1:18000
+        run: |
+          mkdir -p reports
+          pytest tests/smoke tests/contract -m "smoke or contract" \
+            --junitxml=reports/junit-smoke-contract.xml
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Playwright e2e (HTML report + trace retention)
+        env:
+          E2E_BASE_URL: http://127.0.0.1:18000
+        run: |
+          mkdir -p reports
+          pytest tests/e2e -m e2e \
+            --junitxml=reports/junit-e2e.xml \
+            --tracing retain-on-failure \
+            --output reports/playwright
+
+      - name: Upload reports (JUnit XML, Playwright HTML, traces)
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" logs --no-color --tail 200
+
+      - name: Tear down stack (always, no leftover containers)
+        if: always()
+        run: docker compose -f "$COMPOSE_FILE" -p "e2e-${{ github.run_id }}" down -v --remove-orphans

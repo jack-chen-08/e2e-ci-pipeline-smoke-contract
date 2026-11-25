@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>Member Space · CI smoke page</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 3rem auto; max-width: 46rem; }
+    h1 { font-size: 1.4rem; }
+    #company-count { font-weight: 600; color: #0b6; }
+    ul { line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <h1 id="page-title">会员空间 · 冒烟页</h1>
+  <p>Companies loaded: <span id="company-count">…</span></p>
+  <ul id="company-list"></ul>
+  <script>
+    async function main() {
+      const res = await fetch('/api/v1/companies?limit=5');
+      const rows = await res.json();
+      document.getElementById('company-count').textContent = rows.length;
+      const list = document.getElementById('company-list');
+      for (const row of rows) {
+        const li = document.createElement('li');
+        li.className = 'company-row';
+        li.textContent = `${row.name} · ${row.industry} · contacts ${row.contact_count}`;
+        list.appendChild(li);
+      }
+      document.body.dataset.ready = '1';
+    }
+    main();
+  </script>
+</body>
+</html>
