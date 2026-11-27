@@ -1,0 +1,60 @@
+05:16:37 === step 1: build images ===
+05:16:38 $ docker compose -f docker-compose.test.yml -p e2e-local-drill build  (exit 0, 1.5s)
+#28 naming to docker.io/library/e2e-local-drill-backend:latest done
+#28 unpacking to docker.io/library/e2e-local-drill-backend:latest 0.0s done
+#28 DONE 0.2s
+
+#29 [backend] resolving provenance for metadata file
+#29 DONE 0.0s
+05:16:38 === step 2: start stack (PG16/pgvector + Redis + stub + backend) ===
+05:16:47 $ docker compose -f docker-compose.test.yml -p e2e-local-drill up -d --wait --wait-timeout 300  (exit 0, 8.2s)
+
+05:16:47 === step 3: alembic upgrade head ===
+05:16:48 $ docker compose -f docker-compose.test.yml -p e2e-local-drill exec -T backend alembic upgrade head  (exit 0, 1.5s)
+
+05:16:48 === step 4: seed.py --scenario baseline ===
+05:16:50 $ docker compose -f docker-compose.test.yml -p e2e-local-drill exec -T backend python seed.py --scenario baseline  (exit 0, 1.6s)
+scenario=baseline: member_companies=100 contacts=300
+05:16:50 === step 5: smoke + contract (junit) ===
+05:16:51 $ /home/ubuntuuser/work/2840-e2e-ci/.venv/bin/python -m pytest tests/smoke tests/contract -m smoke or contract --junitxml=reports/junit-smoke-contract.xml  (exit 0, 0.8s)
+tests/contract/test_contract.py .....                                    [100%]
+
+- generated xml file: /home/ubuntuuser/work/2840-e2e-ci/reports/junit-smoke-contract.xml -
+=========================== short test summary info ============================
+SKIPPED [1] tests/smoke/test_injected_failure.py:14: fault injection disabled
+======================== 12 passed, 1 skipped in 0.23s =========================
+05:16:51 === step 6: playwright e2e (HTML report + trace) ===
+05:16:54 $ /home/ubuntuuser/work/2840-e2e-ci/.venv/bin/python -m pytest tests/e2e -m e2e --junitxml=reports/junit-e2e.xml --tracing retain-on-failure --output reports/playwright  (exit 0, 3.5s)
+collected 2 items
+
+tests/e2e/test_ui.py ..                                                  [100%]
+
+- generated xml file: /home/ubuntuuser/work/2840-e2e-ci/reports/junit-e2e.xml --
+============================== 2 passed in 3.08s ===============================
+05:16:54 === step 7: AC2 — one injected failing case must fail the gate ===
+05:16:55 $ /home/ubuntuuser/work/2840-e2e-ci/.venv/bin/python -m pytest tests/smoke -m smoke --junitxml=reports/junit-injected.xml  (exit 1, 0.6s)
+
+tests/smoke/test_injected_failure.py:21: AssertionError
+- generated xml file: /home/ubuntuuser/work/2840-e2e-ci/reports/junit-injected.xml -
+=========================== short test summary info ============================
+FAILED tests/smoke/test_injected_failure.py::test_zz_injected_failure_case - ...
+========================= 1 failed, 7 passed in 0.15s ==========================
+05:16:55 injected run exit code = 1 (non-zero = gate blocks merge)
+05:16:55 === step 8: AC3 — WeCom summary posts to the local stub ===
+05:16:56 $ /home/ubuntuuser/work/2840-e2e-ci/.venv/bin/python scripts/notify_failure.py --junit reports/junit-injected.xml --report-url https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/local-drill --endpoint http://127.0.0.1:8099/cgi-bin/webhook/send  (exit 0, 0.1s)
+parsed junit: total=8 failed=1 duration=0.15s
+webhook HTTP 200: {"errcode": 0, "errmsg": "ok"}
+05:16:56 stub received 1 payload(s)
+05:16:56 payload:
+{
+ "msgtype": "markdown",
+ "markdown": {
+  "content": "**夜间回归失败**\n> 时间：2026-11-27 05:16 UTC\n> 失败用例：1 / 8\n> 报告：https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/local-drill\n前 1 条失败 case_id：\n> 1. test_zz_injected_failure_case"
+ }
+}
+05:16:56 === step 9: teardown + leftover check ===
+05:16:58 $ docker compose -f docker-compose.test.yml -p e2e-local-drill down -v --remove-orphans  (exit 0, 2.1s)
+
+05:16:58 leftover containers: none
+05:16:58 
+RESULT: PASS — gate green on a clean stack, red on a single injected failure, summary delivered to the stub, no leftover containers

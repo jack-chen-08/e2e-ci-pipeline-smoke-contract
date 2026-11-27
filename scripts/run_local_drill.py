@@ -24,6 +24,9 @@ PROJECT = "e2e-local-drill"
 COMPOSE = ["docker", "compose", "-f", "docker-compose.test.yml", "-p", PROJECT]
 EVIDENCE = ROOT / "evidence"
 STUB_LOG = Path("/tmp/wecom_local_drill.jsonl")
+HTTP_PORT = os.environ.get("DRILL_HTTP_PORT", "18000")
+BASE_URL = "http://127.0.0.1:%s" % HTTP_PORT
+os.environ.setdefault("DRILL_HTTP_PORT", HTTP_PORT)
 
 
 def log(handle, message: str) -> None:
@@ -67,19 +70,19 @@ def main() -> int:
             log(handle, "=== step 5: smoke + contract (junit) ===")
             run([PY, "-m", "pytest", "tests/smoke", "tests/contract", "-m", "smoke or contract",
                  "--junitxml=reports/junit-smoke-contract.xml"], handle,
-                env={"E2E_BASE_URL": "http://127.0.0.1:18000"})
+                env={"E2E_BASE_URL": BASE_URL})
 
             log(handle, "=== step 6: playwright e2e (HTML report + trace) ===")
             run([PY, "-m", "pytest", "tests/e2e", "-m", "e2e",
                  "--junitxml=reports/junit-e2e.xml", "--tracing", "retain-on-failure",
                  "--output", "reports/playwright"], handle,
-                env={"E2E_BASE_URL": "http://127.0.0.1:18000"})
+                env={"E2E_BASE_URL": BASE_URL})
 
             log(handle, "=== step 7: AC2 — one injected failing case must fail the gate ===")
             injection = run([PY, "-m", "pytest", "tests/smoke", "-m", "smoke",
                              "--junitxml=reports/junit-injected.xml"],
                             handle, check=False, env={"INJECT_FAILURE": "1",
-                                                      "E2E_BASE_URL": "http://127.0.0.1:18000"})
+                                                      "E2E_BASE_URL": BASE_URL})
             log(handle, f"injected run exit code = {injection.returncode} (non-zero = gate blocks merge)")
             if injection.returncode == 0:
                 raise SystemExit("fault injection did not fail the suite")
@@ -90,7 +93,7 @@ def main() -> int:
             time.sleep(1.5)
             try:
                 run([PY, "scripts/notify_failure.py", "--junit", "reports/junit-injected.xml",
-                     "--report-url", "https://github.com/<org>/<repo>/actions/runs/local-drill",
+                     "--report-url", "https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/actions/runs/local-drill",
                      "--endpoint", "http://127.0.0.1:8099/cgi-bin/webhook/send"], handle)
             finally:
                 stub.terminate()
