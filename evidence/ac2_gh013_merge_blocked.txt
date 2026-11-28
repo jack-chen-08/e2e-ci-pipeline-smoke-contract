@@ -1,0 +1,17 @@
+AC2 evidence #3 - direct push to main blocked by ruleset
+repo    : https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract
+ruleset : main-require-e2e-gate (id 28216003, targets main, required check e2e-gate)
+when    : 2026-11-28T17:01:57+08:00
+local   : worktree /tmp/ac2push @ origin/main + empty commit 4fc2ca8
+command : git push origin HEAD:main
+exit    : 1 (non-zero = push refused by server)
+--------- git push output (verbatim) ---------
+remote: error: GH013: Repository rule violations found for refs/heads/main.        
+remote: Review all repository rules at https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/rules?ref=refs%2Fheads%2Fmain        
+remote: 
+remote: - Required status check "e2e-gate" is expected.        
+remote: 
+To github.com:jack-chen-08/e2e-ci-pipeline-smoke-contract.git
+ ! [remote rejected] HEAD -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'github.com:jack-chen-08/e2e-ci-pipeline-smoke-contract.git'
+--------- end ---------
