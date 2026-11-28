@@ -1,0 +1,110 @@
+Skip to content
+jack-chen-08
+e2e-ci-pipeline-smoke-contract
+Type / to search
+Repository navigation
+Code
+Issues
+Pull requests
+1
+ (1)
+Agents
+Actions
+Projects
+Wiki
+Security and quality
+Insights
+Settings
+AC2 demo: one deliberately failing case on a throwaway branch
+- #3
+#3
+✨ Try the Overview page
+Merge status
+Code
+Open
+jack-chen-08
+wants to merge 1 commit into
+main
+from
+ci/demo-red-gate
++18
+Lines changed: 18 additions & 0 deletions
+Conversation0
+ (0)
+Commits1
+ (1)
+Checks1
+ (1)
+Files changed1
+ (1)
+Conversation
+jack-chen-08
+commented
+Owner
+
+Proves the required status check works: e2e-gate goes red on this PR and the ruleset main-require-e2e-gate blocks the merge. Not meant to be merged.
+
+AC2 demo: one deliberately failing case on a throwaway branch …
+5058d00
+ jack-chen-08 mentioned this pull request 
+AC2 evidence: required check on main + failing PR proof #4
+ Merged
+Merge info
+All checks have failed
+
+1 failing check
+
+failing checks
+e2e-gate / e2e-gate (pull_request)Failing after 56s
+Required
+Merge pull request
+You can also merge this with the command line. View command line instructions.
+Still in progress?
+Convert to draft
+Add a comment
+Comment
+Write
+Preview
+
+Add your comment here...
+
+Markdown is supported
+Paste, drop, or click to add files
+ Close pull request
+Comment
+Remember, contributions to this repository should follow our GitHub Community Guidelines.
+ ProTip! Add comments to specific lines under Files changed.
+Reviewers
+No reviews
+Still in progress?
+Convert to draft
+Assignees
+No one—assign yourself
+Labels
+None yet
+Projects
+None yet
+Milestone
+No milestone
+Development
+
+Successfully merging this pull request may close these issues.
+
+None yet
+
+Loading
+1 participant
+ Lock conversation
+ Archive pull request
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information

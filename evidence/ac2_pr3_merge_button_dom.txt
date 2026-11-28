@@ -1,0 +1,33 @@
+# AC2 证据：PR #3 合并按钮 DOM 实测（`aria-disabled` 可 grep）
+
+- 抓取日期：2026-11-28（本地时区 +08:00）
+- 页面：https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/pull/3
+- 方式：用已登录态的 Chrome（CDP，127.0.0.1:19222）打开真页面，在 `document.querySelectorAll("button")` 里筛出文字含 `Merge pull request` 的元素，直接读属性并取其 `outerHTML`。不是手抄、不是截图识字。
+- 结论：按钮存在，**`aria-disabled="true"`**。GitHub 的合并按钮不用原生 `disabled` 属性（实测 `disabled = false`），而是用 `aria-disabled="true"` + `data-inactive="true"` 表达禁用，所以按钮留在 DOM 里但点不动 —— 与同页整页截图 `ac2_pr3_merge_box_full.png` 里的灰态按钮互相印证。
+
+## 原始 JSON（verbatim，未删改）
+
+```json
+{"url":"https://github.com/jack-chen-08/e2e-ci-pipeline-smoke-contract/pull/3","found":true,"ariaDisabled":"true","disabled":false,"btnClass":"prc-Button-ButtonBase-9n-Xk flex-1","btnOuterHTML":"<button aria-disabled=\"true\" data-component=\"Button\" type=\"button\" data-telemetry-action=\"pull_requests.merge.open\" class=\"prc-Button-ButtonBase-9n-Xk flex-1\" data-inactive=\"true\" data-loading=\"false\" data-no-visuals=\"true\" data-size=\"medium\" data-variant=\"default\"><span data-component=\"buttonContent\" data-align=\"center\" class=\"prc-Button-ButtonContent-Iohp5\"><span data-component=\"text\" class=\"prc-Button-Label-FWkx3\">Merge pull request</span></span></button>","mergeBox":null,"pageHasRequired":true}
+```
+
+## 同组证据
+
+| 文件 | 内容 |
+| --- | --- |
+| `evidence/ac2_pr3_merge_box_full.png` | PR #3 整页截图（CSS 1440×1373，2× 输出 2880×2786）：合并框完整入画，`All checks have failed` / `1 failing check`、`e2e-gate / e2e-gate (pull_request)` **Failing after 56s**、右侧 `Required` 徽章、灰色 `Merge pull request` 按钮同框 |
+| `evidence/ac2_pr3_merge_box_full.png.dom.txt` | 同一页面的 `document.body.innerText` 全文（可 grep `All checks have failed`、`Failing after 56s`、`Required`） |
+| `evidence/ac2_ruleset_detail_full.png` | 规则集详情页整页：`main` / `Active` / `Target branches: Include main, Applies to 1 target: main` / `Require status checks to pass` → `e2e-gate`（GitHub Actions）/ `Block force pushes`；无 Bypass 一栏（与 API 导出 `bypass_actors: []` 一致） |
+| `evidence/ac2_ruleset_detail_full.png.dom.txt` | 规则集页 `innerText` 全文 |
+| `evidence/ac2_gh013_merge_blocked.txt` | 反向证明：在 `origin/main` 之上做一次空提交后 `git push origin HEAD:main`，服务端拒绝的原文（`remote: error: GH013` … `remote: - Required status check "e2e-gate" is expected.` … `! [remote rejected] HEAD -> main`，exit 1） |
+
+## grep 自查（三条关键词均命中）
+
+```text
+$ grep -rl "aria-disabled" evidence/
+evidence/ac2_pr3_merge_button_dom.txt
+$ grep -rl "GH013" evidence/
+evidence/ac2_gh013_merge_blocked.txt
+$ grep -rln 'Required status check' evidence/
+evidence/ac2_gh013_merge_blocked.txt
+```
